@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Overview</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    td, th {
+      border: 1px solid black;
+      text-align: left;
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+
+    thead td {
+      font-weight: bold;
+      border-bottom: 3px solid black;
+    }
+
+    tr > td:first-child {
+      font-weight: bold;
+      border-right: 3px solid black;
+      text-align: right;
+    }
+
+    td.score {
+      border-right: 1px dashed black;
+    }
+
+    td.score:not(.total-score) {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    td.score > a {
+      display: block;
+      padding-left: 5px;
+      padding-right: 5px;
+      text-decoration: none;
+      color: black;
+    }
+
+    td.relative-score {
+      border-left: 0;
+    }
+
+    tfoot td {
+      font-weight: bold;
+      border-top: 3px solid black;
+    }
+  </style>
+</head>
+<body>
+  <table>
+    <thead>
+      <tr>
+        <td></td>
+      </tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <script>
+    function getColor(score) {
+      return score >= 0.99 ? `rgba(0, 255, 0, ${score})` : `rgba(255, 0, 0, ${Math.min(1, (1 - score) * 2)})`;
+    }
+
+    const scoresBySolver = /* scores_by_solver */{};
+    const scoresBySeed = {};
+
+    const sortedSolvers = Object.keys(scoresBySolver).sort().reverse();
+
+    const headerRow = document.querySelector('thead > tr');
+    for (const solver of sortedSolvers) {
+      const solverCell = document.createElement('td');
+      solverCell.textContent = solver;
+      solverCell.colSpan = 2;
+      headerRow.appendChild(solverCell);
+
+      for (const seed in scoresBySolver[solver]) {
+        if (scoresBySeed[seed] === undefined) {
+          scoresBySeed[seed] = [];
+        }
+
+        scoresBySeed[seed].push(scoresBySolver[solver][seed]);
+      }
+    }
+
+    const totalScores = [];
+    const relativeScores = [];
+
+    for (let i = 0; i < sortedSolvers.length; i++) {
+      totalScores.push(0);
+      relativeScores.push(0);
+    }
+
+    const tableBody = document.querySelector('tbody');
+
+    for (const seed of Object.keys(scoresBySeed).sort((a, b) => a < b)) {
+      const row = document.createElement('tr');
+
+      const seedCell = document.createElement('td');
+      seedCell.textContent = seed;
+      row.appendChild(seedCell);
+
+      const bestScore = Math.max(...scoresBySeed[seed]);
+      for (let i = 0; i < scoresBySeed[seed].length; i++) {
+        const score = scoresBySeed[seed][i];
+        const relativeScore = score >= 0 ? score / bestScore : 0;
+
+        totalScores[i] += score;
+        relativeScores[i] += relativeScore;
+
+        const scoreCell = document.createElement('td');
+        scoreCell.style.background = getColor(relativeScore);
+        scoreCell.classList.add('score');
+
+        const linkElement = document.createElement('a');
+        linkElement.textContent = score.toLocaleString();
+        linkElement.href = `visualizer/index.html?input=input/${seed}.in&output=output/${sortedSolvers[i]}/${seed}.out`;
+        linkElement.target = '_blank';
+
+        const relativeScoreCell = document.createElement('td');
+        relativeScoreCell.textContent = relativeScore.toFixed(3);
+        relativeScoreCell.style.background = getColor(relativeScore);
+        relativeScoreCell.classList.add('relative-score');
+
+        scoreCell.appendChild(linkElement);
+        row.appendChild(scoreCell);
+        row.appendChild(relativeScoreCell);
+      }
+
+      tableBody.appendChild(row);
+    }
+
+    const seedCount = Object.keys(scoresBySeed).length;
+
+    const totalRow = document.querySelector('tfoot > tr');
+    for (let i = 0; i < sortedSolvers.length; i++) {
+      const totalScore = totalScores[i];
+      const relativeScore = relativeScores[i];
+
+      const totalScoreCell = document.createElement('td');
+      totalScoreCell.textContent = totalScore.toLocaleString();
+      totalScoreCell.style.background = getColor(relativeScore / seedCount);
+      totalScoreCell.classList.add('score', 'total-score');
+
+      const relativeScoreCell = document.createElement('td');
+      relativeScoreCell.textContent = relativeScore.toFixed(3);
+      relativeScoreCell.style.background = getColor(relativeScore / seedCount);
+      relativeScoreCell.classList.add('relative-score');
+
+      totalRow.appendChild(totalScoreCell);
+      totalRow.appendChild(relativeScoreCell);
+    }
+  </script>
+</body>
+</html>
